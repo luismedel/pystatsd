@@ -14,7 +14,7 @@ server supports.
     information.
 
 
-.. py:class:: StatsClient(host='localhost', port=8125, prefix=None, maxudpsize=512)
+.. py:class:: StatsClient(host='localhost', port=8125, prefix=None, maxudpsize=512, ignore_socket_errors=False)
 
     Create a new ``StatsClient`` instance with the appropriate connection and
     prefix information.
@@ -27,10 +27,21 @@ server supports.
     :param int maxudpsize: the largest safe UDP packet to send. 512 is
         generally considered safe for the public internet, but private networks
         may support larger packet sizes.
+    :param bool ignore_socket_errors: whether or not to ignore socket errors
+        when initializing the client. If set to ``True``, the client will ignore
+        the error and continue. If set to ``False``, the client will raise the error.
+        You can check the ``is_ready`` attribute to see if the client is ready to send.
 
 .. py:method:: StatsClient.close()
 
     Close the underlying UDP socket.
+
+.. py:method:: StatsClient.reset()
+
+    Resets the underlying UDP socket. This is useful if the connection is
+    not ready due to network issues or if the connection was closed. This
+    method will honor the ``ignore_socket_errors`` parameter in the constructor.
+    You can check the ``is_ready`` attribute to see if the client is ready to send.
 
 .. py:method:: StatsClient.incr(stat, count=1, rate=1)
 
