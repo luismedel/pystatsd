@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import os
 import random
 import re
 import socket
@@ -35,12 +36,18 @@ def eq_(a, b, msg=None):
     assert a == b, msg
 
 
-def _udp_client(prefix=None, addr=None, port=None, ipv6=False):
+def _is_travis():
+    return os.environ.get('TRAVIS') in ('true', '1')
+
+
+def _udp_client(prefix=None, addr=None, port=None, ipv6=False,
+                ignore_socket_errors=False):
     if not addr:
         addr = ADDR[0]
     if not port:
         port = ADDR[1]
-    sc = StatsClient(host=addr, port=port, prefix=prefix, ipv6=ipv6)
+    sc = StatsClient(host=addr, port=port, prefix=prefix, ipv6=ipv6,
+                     ignore_socket_errors=ignore_socket_errors)
     sc._sock = mock.Mock()
     return sc
 
@@ -268,20 +275,47 @@ def _test_resolution(cl, proto, addr):
     _sock_check(cl._sock, 1, proto, 'foo:1|c', addr=addr)
 
 
-def test_ipv6_resolution_udp():
-    raise SkipTest('IPv6 resolution is broken on Travis')
-    cl = _udp_client(addr='localhost', ipv6=True)
-    _test_resolution(cl, 'udp', ('::1', 8125, 0, 0))
-
-
 def test_ipv6_resolution_tcp():
     cl = _tcp_client(addr='localhost', ipv6=True)
     _test_resolution(cl, 'tcp', ('::1', 8125, 0, 0))
 
 
+def test_ipv6_resolution_udp():
+    if _is_travis():
+        raise SkipTest('IPv6 resolution is broken on Travis')
+    cl = _udp_client(addr='localhost', ipv6=True)
+    _test_resolution(cl, 'udp', ('::1', 8125, 0, 0))
+    assert cl.is_ready is True
+
+
+def test_ipv6_error_in_resolution_udp():
+    if _is_travis():
+        raise SkipTest('IPv6 resolution is broken on Travis')
+    with assert_raises(socket.gaierror):
+        _ = _udp_client(addr='fakehost', ipv6=True)
+
+
+def test_ipv6_error_in_resolution_ignored_udp():
+    if _is_travis():
+        raise SkipTest('IPv6 resolution is broken on Travis')
+    cl = _udp_client(addr='fakehost', ipv6=True, ignore_socket_errors=True)
+    assert cl.is_ready is False
+
+
 def test_ipv4_resolution_udp():
     cl = _udp_client(addr='localhost')
     _test_resolution(cl, 'udp', ('127.0.0.1', 8125))
+    assert cl.is_ready is True
+
+
+def test_ipv4_error_in_resolution_udp():
+    with assert_raises(socket.gaierror):
+        _ = _udp_client(addr='fakehost')
+
+
+def test_ipv4_error_in_resolution_ignored_udp():
+    cl = _udp_client(addr='fakehost', ignore_socket_errors=True)
+    assert cl.is_ready is False
 
 
 def test_ipv4_resolution_tcp():
