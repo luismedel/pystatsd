@@ -8,6 +8,15 @@ from .timer import Timer
 class StatsClientBase:
     """A Base class for various statsd clients."""
 
+    @property
+    def is_ready(self):
+        """Returns True if the client is ready to send data."""
+        raise NotImplementedError()
+
+    def reset(self):
+        """Reset the client."""
+        raise NotImplementedError()
+
     def close(self):
         """Used to close and clean up any underlying resources."""
         raise NotImplementedError()

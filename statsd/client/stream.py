@@ -18,6 +18,9 @@ class StreamClientBase(StatsClientBase):
             self._sock.close()
         self._sock = None
 
+    def reset(self):
+        self.reconnect()
+
     def reconnect(self):
         self.close()
         self.connect()
@@ -48,6 +51,11 @@ class TCPStatsClient(StreamClientBase):
         self._prefix = prefix
         self._sock = None
 
+    @property
+    def is_ready(self):
+        """Return True if the client is ready to send data."""
+        return self._sock is not None
+
     def connect(self):
         fam = socket.AF_INET6 if self._ipv6 else socket.AF_INET
         family, _, _, _, addr = socket.getaddrinfo(
@@ -66,6 +74,11 @@ class UnixSocketStatsClient(StreamClientBase):
         self._timeout = timeout
         self._prefix = prefix
         self._sock = None
+
+    @property
+    def is_ready(self):
+        """Return True if the client is ready to send data."""
+        return self._sock is not None
 
     def connect(self):
         self._sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
